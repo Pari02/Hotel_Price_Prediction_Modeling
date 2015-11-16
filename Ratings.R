@@ -28,6 +28,8 @@ all_data <- lapply(filename, function(x) fromJSON(x))
 
 # extracting cities and countries name
 all_address <- lapply(1:length(all_data), function(i) all_data[[i]]$HotelInfo$Address)
+all_doc <- lapply(1:length(all_address), function(x) htmlParse(all_address[x], asText = TRUE))
+
 plain.text <- lapply(1:length(all_doc), function(x) xpathSApply(all_doc[[x]], "//text()[not(ancestor::script)][not(ancestor::style)][not(ancestor::noscript)][not(ancestor::form)]", xmlValue))
 pattern <- lapply(1:length(all_doc), function(x) which(plain.text[[x]] %in% c(" ", ", ")))
 address <- lapply(1:length(plain.text), function(i) {
@@ -40,8 +42,6 @@ address <- lapply(1:length(plain.text), function(i) {
     plain.text[[i]] <- plain.text[[i]]
   }
 })
-
-all_doc <- lapply(1:length(all_address), function(x) htmlParse(all_address[x], asText = TRUE))
 
 all_city <- lapply(1:length(all_doc), function(x) xpathSApply(all_doc[[x]], "//span[@property='v:locality']", xmlValue))
 all_country <- lapply(1:length(all_doc), function(x) xpathSApply(all_doc[[x]], "//span[@property='v:country-name']", xmlValue))
@@ -67,7 +67,6 @@ date_all <- all_date[-country_filter]
 all_price <- lapply(1:length(all_data), function(i) all_data[[i]]$HotelInfo$Price)
 price_all <- all_price[-country_filter]
 address_all <- address[-country_filter]
-#address_all <- lapply(1:length(address_all), function(x) tolower(address_all[[x]]))
   
 # extarcting us_cities
 us_cities <- all_city[-country_filter]
@@ -99,9 +98,10 @@ for(i in 1:length(cities))
   hotelPrice <- price_all[city_filter]
     
   # combining ratings, review date, hotel name and zip codes
-  ratings <- lapply(1:length(city_filter), function(x) cbind(rating_city[[x]], review_date[[x]]
-                                                             , hotelName[[x]], hotelPrice[[x]]
-                                                             , zip_codes[[x]]))
+  ratings <- lapply(1:length(city_filter), function(x) cbind(rating_city[[x]], "Date" = review_date[[x]]
+                                                             , "Hotel Name" = hotelName[[x]]
+                                                             , "Hotel Prie" = hotelPrice[[x]]
+                                                             , "Zip Code" = zip_codes[[x]]))
     
   # command to create flatlist in R by row 
   ratings1 <- rbind.fill(lapply(ratings, function(f) { as.data.frame(Filter(Negate(is.null), f))}))
@@ -112,7 +112,7 @@ for(i in 1:length(cities))
   
   # as.character(f) requires a "primitive lookup" to find the function as.character.factor()
   #, which is defined as as.numeric(levels(f))[f]
-  ratings1$`review_date[[x]]` <- as.yearmon(ratings1$`review_date[[x]]`, "%B%d, %Y")
+  ratings1$Date <- as.yearmon(ratings1$Date, "%B%d, %Y")
     
   # write csv file for each city
   write.csv(ratings1, paste(city, "ratings.csv", sep = "_"))
